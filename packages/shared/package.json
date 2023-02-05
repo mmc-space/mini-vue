@@ -1,0 +1,11 @@
+{
+  "name": "@vue/shared",
+  "version": "1.0.0",
+  "description": "",
+  "buildOptions": {
+    "formats": [
+      "cjs",
+      "esm-bundler"
+    ]
+  }
+}
