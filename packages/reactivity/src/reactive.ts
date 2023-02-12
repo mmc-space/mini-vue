@@ -1,22 +1,40 @@
 import { isObject } from '@vue/shared'
 // 1. 将数据转换成响应式数据
+// 2.代理过的对象将不进行代理
+const enum ReactiveFlags {
+  IS_REACTIVE = '__v_isReactive'
+}
+interface Target {
+  [ReactiveFlags.IS_REACTIVE]?: boolean
+}
+
+const reactiveMap = new WeakMap<Target, any>()
+
 export function reactive<T extends object>(target: T): any
-export function reactive(target: object) {
+export function reactive(target: Target) {
   if (!isObject(target)) {
     return target
   }
-
+  if (target[ReactiveFlags.IS_REACTIVE]) {
+    return target
+  }
+  let exisitingProxy = reactiveMap.get(target)
+  if (exisitingProxy) {
+    return exisitingProxy
+  }
   const proxy = new Proxy(target, {
     get(target, key, receiver) {
       // Reflect 会把目标对象中的this换成代理对象
-      console.log(key)
+      if (key === ReactiveFlags.IS_REACTIVE) {
+        return true
+      }
       return Reflect.get(target, key, receiver)
     },
     set(target, key, value, receiver) { 
       return Reflect.set(target, key, value, receiver)
     }
   })
-
+  reactiveMap.set(target, proxy)
   return proxy
 }
 
