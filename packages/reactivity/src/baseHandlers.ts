@@ -1,5 +1,5 @@
-import { ReactiveFlags, Target } from './reactive'
-import { activeEffect, track, trigger } from './effect'
+import { ReactiveFlags, Target, toRaw } from './reactive'
+import { track, trigger } from './effect'
 
 export const mutableHandlers = {
   get(target: Target, key: string | symbol, receiver: object) {

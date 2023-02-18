@@ -3,10 +3,12 @@ import { mutableHandlers } from './baseHandlers'
 // 1. 将数据转换成响应式数据
 // 2.代理过的对象将不进行代理
 export const enum ReactiveFlags {
-  IS_REACTIVE = '__v_isReactive'
+  IS_REACTIVE = '__v_isReactive',
+  RAW = '__v_raw'
 }
 export interface Target {
   [ReactiveFlags.IS_REACTIVE]?: boolean
+  [ReactiveFlags.RAW]?: any
 }
 
 const reactiveMap = new WeakMap<Target, any>()
@@ -26,6 +28,11 @@ export function reactive(target: Target) {
   const proxy = new Proxy(target, mutableHandlers)
   reactiveMap.set(target, proxy)
   return proxy
+}
+
+export function toRaw<T>(observed: T): T {
+  const raw = observed && (observed as Target)[ReactiveFlags.RAW]
+  return raw ? toRaw(raw) : observed
 }
 
 // const target = {
