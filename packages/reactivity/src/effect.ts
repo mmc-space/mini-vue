@@ -1,6 +1,21 @@
 import type { Target } from './reactive'
 import type { Dep } from './dep'
+import { extend } from '@vue/shared'
+
 export let activeEffect: ReactiveEffect | undefined
+export type EffectScheduler = (...args: any[]) => any
+export type DebuggerEvent = {
+  effect: ReactiveEffect
+} & DebuggerEventExtraInfo
+
+export type DebuggerEventExtraInfo = {
+  target: object
+  type: any // TODO
+  key: any
+  newValue?: any
+  oldValue?: any
+  oldTarget?: Map<any, any> | Set<any>
+}
 
 // 数据变化要重新执行effect 所以要将effect 弄成响应式的
 export class ReactiveEffect<T = any> {
@@ -8,7 +23,8 @@ export class ReactiveEffect<T = any> {
   deps: Dep[] = []
   parent: ReactiveEffect | undefined = undefined
   constructor(
-    public fn: () => T
+    public fn: () => T,
+    public scheduler: EffectScheduler | null = null
   ) {}
 
   // run 就是执行effect
@@ -29,6 +45,15 @@ export class ReactiveEffect<T = any> {
       activeEffect = this.parent
     }
   }
+
+  // 停止effect 的收集
+  stop() {
+    if (this.active) {
+      this.active = false
+      cleanUpEffect(this)
+    }
+
+  }
 }
 
 function cleanUpEffect(effect: ReactiveEffect) {
@@ -41,11 +66,31 @@ function cleanUpEffect(effect: ReactiveEffect) {
   }
 }
 
-export function effect<T = any>(fn: () => T) {
+export interface DebuggerOptions {
+  onTeack?: (event: DebuggerEvent) => void
+  onTrigger?: (event: DebuggerEvent) => void
+}
+
+export interface ReactiveEffectOptions extends DebuggerOptions {
+  scheduler?: EffectScheduler
+}
+
+export interface ReactiveEffectRunner<T = any> {
+  (): T
+  effect: ReactiveEffect
+}
+
+export function effect<T = any>(
+  fn: () => T,
+  options?: ReactiveEffectOptions
+): ReactiveEffectRunner {
   // 这里的fn 可以根据状态变化，重新执行，effect 可以嵌套
-  const _effect = new ReactiveEffect(fn)
+  const _effect = new ReactiveEffect(fn, options?.scheduler)
 
   _effect.run() // 默认先执行一次
+  const runner = _effect.run.bind(_effect) as ReactiveEffectRunner
+  runner.effect = _effect
+  return runner
 }
 
 
@@ -87,7 +132,11 @@ export function trigger(target: object, type: string, key?: unknown, value?: unk
     effects.forEach((effect: ReactiveEffect) => {
       // 在执行effect 的时候，又要执行自己，需要屏蔽 不要无限调用
       if (effect !== activeEffect) {
-        effect.run()
+        if (effect.scheduler) {
+          effect.scheduler()
+        } else {
+          effect.run()
+        }
       }
     })
   }
