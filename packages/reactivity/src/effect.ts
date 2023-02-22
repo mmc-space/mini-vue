@@ -1,6 +1,5 @@
 import type { Target } from './reactive'
 import type { Dep } from './dep'
-import { extend } from '@vue/shared'
 
 export let activeEffect: ReactiveEffect | undefined
 export type EffectScheduler = (...args: any[]) => any
@@ -114,11 +113,15 @@ export function track(target: Target, type: string, key: string | symbol) {
   if(!dep) {
     depsMap.set(key, (dep = new Set()))
   }
+  trackEffect(dep)
+}
+
+export function trackEffect(dep: any) {
   let shouldTrack = !dep.has(activeEffect)  // 去重
   if(shouldTrack) {
     dep.add(activeEffect)// dep 记录对应的 effect
 
-    activeEffect.deps.push(dep) // effect 记录对应的 dep
+    activeEffect!.deps.push(dep) // effect 记录对应的 dep
   }
 }
 
@@ -128,16 +131,20 @@ export function trigger(target: object, type: string, key?: unknown, value?: unk
   let effects =  depsMap.get(key) // 找到属性对应的effect
 
   if(effects) {
-    effects = new Set(effects)
-    effects.forEach((effect: ReactiveEffect) => {
-      // 在执行effect 的时候，又要执行自己，需要屏蔽 不要无限调用
-      if (effect !== activeEffect) {
-        if (effect.scheduler) {
-          effect.scheduler()
-        } else {
-          effect.run()
-        }
-      }
-    })
+    triggerEffect(effects)
   }
+}
+
+export function triggerEffect(effects: any) {
+  effects = new Set(effects)
+  effects.forEach((effect: ReactiveEffect) => {
+    // 在执行effect 的时候，又要执行自己，需要屏蔽 不要无限调用
+    if (effect !== activeEffect) {
+      if (effect.scheduler) {
+        effect.scheduler()
+      } else {
+        effect.run()
+      }
+    }
+  })
 }
