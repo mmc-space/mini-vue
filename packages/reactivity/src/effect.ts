@@ -121,7 +121,7 @@ export function trackEffect(dep: any) {
   if(shouldTrack) {
     if (activeEffect) {
       dep.add(activeEffect!)// dep 记录对应的 effect
-      debugger
+      // debugger
       activeEffect!.deps.push(dep) // effect 记录对应的 dep
     }
   }
