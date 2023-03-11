@@ -13,6 +13,10 @@ export interface Target {
 
 const reactiveMap = new WeakMap<Target, any>()
 
+export function isReactive(value: any) {
+  return !!(value && value[ReactiveFlags.IS_REACTIVE])
+}
+
 export function reactive<T extends object>(target: T): any
 export function reactive(target: Target) {
   if (!isObject(target)) {

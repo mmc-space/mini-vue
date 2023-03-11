@@ -119,9 +119,11 @@ export function track(target: Target, type: string, key: string | symbol) {
 export function trackEffect(dep: any) {
   let shouldTrack = !dep.has(activeEffect)  // 去重
   if(shouldTrack) {
-    dep.add(activeEffect)// dep 记录对应的 effect
-
-    activeEffect!.deps.push(dep) // effect 记录对应的 dep
+    if (activeEffect) {
+      dep.add(activeEffect!)// dep 记录对应的 effect
+      debugger
+      activeEffect!.deps.push(dep) // effect 记录对应的 dep
+    }
   }
 }
 
