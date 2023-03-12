@@ -1,5 +1,5 @@
 import { isArray, isObject } from "@vue/shared"
-import { reactive } from './reactive'
+import { isReactive, reactive } from './reactive'
 import { trackEffect, triggerEffect } from "./effect"
 
 function toReactive<T extends object>(value: T): T {
@@ -60,4 +60,22 @@ export function toRefs<T extends object>(object: T) {
     result[key] = toRef(object, key)
   }
   return result
+}
+
+export function proxyRefs<T extends object>(object: T) {
+  return new Proxy(object, {
+    get: (target, key, recevier) => {
+      let r = Reflect.get(target, key, recevier)
+      return r.__v_isRef ? r.value : r
+    },
+    set: (target: any, key: any, value: any, recevier: any) => {
+      let oldValue = target[key]
+      if (oldValue.__v_isRef) {
+        oldValue.value = value
+        return true
+      } else {
+        return Reflect.set(target, key, value, recevier)
+      }
+    }
+  })
 }
