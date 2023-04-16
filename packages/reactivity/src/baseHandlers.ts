@@ -1,28 +1,32 @@
-import { ReactiveFlags, Target, reactive, toRaw } from './reactive'
-import { track, trigger } from './effect'
-import { isObject } from '@vue/shared'
+import { Target, reactive } from "./reactive"
+import { track, trigger } from "./effect"
+import { isObject } from "@vue/shared"
+
+export const enum ReactiveFlags {
+  IS_REACTIVE = '__v_isReactive'
+}
 
 export const mutableHandlers = {
   get(target: Target, key: string | symbol, receiver: object) {
-    // Reflect 会把目标对象中的this换成代理对象
     if (key === ReactiveFlags.IS_REACTIVE) {
       return true
     }
+    // activeEffect 和 key 关联在一起
     track(target, 'get', key)
-    let res =  Reflect.get(target, key, receiver)
+
+    const res = Reflect.get(target, key, receiver)
     if (isObject(res)) {
-      return reactive(res) // 深度代理实现
+      return reactive(res)
     }
     return res
   },
-  set(target: object, key: string | symbol, value: unknown, receiver: object) { 
+  set(target: Target, key: string | symbol, value: unknown, receiver: object) {
     let oldValue = (target as any)[key]
     let result = Reflect.set(target, key, value, receiver)
-
-    if (oldValue !== result) { // 值变化
+    if (oldValue !== value) { // 值变化了
+      // 需要更新
       trigger(target, 'set', key, value, oldValue)
     }
-
     return result
   }
 }
